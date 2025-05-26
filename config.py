@@ -1,15 +1,9 @@
 import argparse
 
 
-# EXPERIMENT_ROOT_FOLDER = 'experiments_ablation'
 
-# EXPERIMENT_ROOT_FOLDER = 'experiments_gsnr_lr'
-# EXPERIMENT_ROOT_FOLDER = 'experiments_llm_zero'
 
-EXPERIMENT_ROOT_FOLDER = 'experiments_generalization_analysis_baseline_ab'
-
-# EXPERIMENT_ROOT_FOLDER = 'experiments_metaAdapt'
-
+EXPERIMENT_ROOT_FOLDER = 'experiments'
 
 parser = argparse.ArgumentParser()
 
@@ -19,7 +13,7 @@ parser.add_argument('--device', default='cuda', type=str,
                     help='Device used for training')
 
 # Model settings
-parser.add_argument('--lm_model', default=r'/app/hzj/zjh/MetaAdapt/experiments_ablation/liar2coaid_gsnr_epoch100_no_gsnr_lr', type=str,
+parser.add_argument('--lm_model', default=r'/app/hzj/gcml/experiments', type=str,
                     help='Roberta pre-trained model selected in the list, we use roberta-base here')
 parser.add_argument('--output_dir', default=None, type=str,
                     help='The output directory where the model checkpoints and predictions will be written')
