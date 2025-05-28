@@ -13,7 +13,7 @@ parser.add_argument('--device', default='cuda', type=str,
                     help='Device used for training')
 
 # Model settings
-parser.add_argument('--lm_model', default=r'/app/hzj/gcml/experiments', type=str,
+parser.add_argument('--lm_model', default=r'./roberta-base', type=str,
                     help='Roberta pre-trained model selected in the list, we use roberta-base here')
 parser.add_argument('--output_dir', default=None, type=str,
                     help='The output directory where the model checkpoints and predictions will be written')
@@ -36,10 +36,10 @@ parser.add_argument('--num_pi', default=20, type=int, help='Number of subtasks, 
 parser.add_argument('--num_updates', default=3, type=int, help='Number of update steps for each subtask (inner update)')
 parser.add_argument('--num_shots', default=10, type=int, help='Number of shots for each class in the query set')
 parser.add_argument('--conf_threshold', default=0.8, type=float, help='Initial confidence threshold for pseudo labels')
-parser.add_argument("--source_data_path", default='./data/FakeNewsNet/fakenewsnet_dataset', type=str, help="Source file for training. E.g., ./data/Constraint")
-parser.add_argument("--source_data_type", default='pheme', type=str, help="Source file type for training. E.g., constraint")
-parser.add_argument('--target_data_path', default='./data/CoAID', type=str, help='Target file training for joint training')
-parser.add_argument('--target_data_type', default='antivax', type=str, help='Source file type for training. E.g., constraint')
+parser.add_argument("--source_data_path", default='./GCML/liar_dataset', type=str, help="Source file for training. E.g., ./data/Constraint")
+parser.add_argument("--source_data_type", default='liar', type=str, help="Source file type for training. E.g., constraint")
+parser.add_argument('--target_data_path', default='./GCML/CoAID', type=str, help='Target file training for joint training')
+parser.add_argument('--target_data_type', default='coaid', type=str, help='Source file type for training. E.g., constraint')
 parser.add_argument('--load_model_path', default=None, type=str, help='Trained source model path for adaptation.')
 
 # Preprocessing settings
@@ -71,8 +71,8 @@ parser.add_argument('--learning_rate_learner', default=1e-5, type=float, help='T
 parser.add_argument('--learning_rate_lr', default=5e-6, type=float, help='The (subtask) learning rate of learning rate')
 parser.add_argument('--softmax_temp', default=0.01, type=float, help='The softmax temperature for learning')
 parser.add_argument('--num_train_epochs', default=2, type=int, help='Total number of source training epochs to perform')
-parser.add_argument('--num_iterations', default=6, type=int, help='Total number of adaptation iterations to perform')
-parser.add_argument('--eval_interval', default=1, type=int, help='Validation interval in training')
+parser.add_argument('--num_iterations', default=500, type=int, help='Total number of adaptation iterations to perform')
+parser.add_argument('--eval_interval', default=50, type=int, help='Validation interval in training')
 parser.add_argument('--max_grad_norm', default=1.0, type=float, help='Maximum gradient norm in training')
 
 # Option for deleting model files

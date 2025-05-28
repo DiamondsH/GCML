@@ -318,7 +318,7 @@ def adapt(args):
                 
                 # use meta loss to update learnable lr
                 # inner_loop_optimizer.update_lrs(query_loss, scaler)
-                inner_loop_optimizer.update_lrs_modify(loss=query_loss, scaler=scaler,args=args)
+                inner_loop_optimizer.update_lrs(loss=query_loss, scaler=scaler,args=args)
                 mean_outer_loss += query_loss
             
 
