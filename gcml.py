@@ -258,7 +258,6 @@ def adapt(args):
                   
                     fast_weights = inner_loop_optimizer.update_params(fast_weights, grads, k)
 
-                # use phi - theta as task gradients
                 task_gradients = tuple()   #  len(task_gradients)  201
                 weight_before = OrderedDict(model.named_parameters())
                 for _, (params_before, params_after) in enumerate(zip(weight_before, fast_weights)):
