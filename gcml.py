@@ -38,6 +38,35 @@ quantities = [
 ]
 
 
+def compute_gsnr(task_gradients, args):
+    grads = torch.cat([g.flatten() for g in task_gradients])
+
+    # mean_gradient = torch.mean(grads, dim=0)
+
+    epsilon = 1e-5
+
+    grad_squared = grads ** 2
+
+    sum_grad_squared = [(g ** 2) for g in task_gradients]
+
+    sum_grad_squared = torch.cat([sgs.flatten() for sgs in sum_grad_squared])
+
+
+    GSNR = grad_squared / (sum_grad_squared - grad_squared + epsilon)
+
+    # variance = torch.mean((grads - mean_gradient)**2, dim=0)
+
+    # 计算梯度的平方均值（(E[g])^2）
+    # mean_gradient_squared = torch.mean(mean_gradient**2)
+
+    # # 计算梯度的方差的均值（E[Var[g]]）
+    # mean_variance = torch.mean(variance)
+
+    # 计算 GSNR
+    # GSNR = mean_gradient_squared / mean_variance
+
+    return GSNR
+
 def fix_random_seed_as(random_seed):
     random.seed(random_seed)
     np.random.seed(random_seed)
@@ -80,48 +109,10 @@ def evaluation(args, model, eval_dataloader):
     
     return final_bacc, final_acc, final_f1, final_precision, final_recall
 
-
-def compute_gsnr(task_gradients,args):
-    grads = torch.cat([g.flatten() for g in task_gradients])
-    
-    # mean_gradient = torch.mean(grads, dim=0)
-    
-    epsilon=1e-5
-    
-    grad_squared = grads ** 2
-    
-    # import pdb
-    # pdb.set_trace()
-    
-    sum_grad_squared = [(g ** 2) for g in task_gradients]
-    
-    sum_grad_squared = torch.cat([sgs.flatten() for sgs in sum_grad_squared])
-    
-    # batch_size = args.train_batchsize
-    
-    GSNR = grad_squared / (sum_grad_squared - grad_squared + epsilon) 
-    
-    # variance = torch.mean((grads - mean_gradient)**2, dim=0)
-    
-    # 计算梯度的平方均值（(E[g])^2）
-    # mean_gradient_squared = torch.mean(mean_gradient**2)
-
-    # # 计算梯度的方差的均值（E[Var[g]]）
-    # mean_variance = torch.mean(variance)
-    
-    # 计算 GSNR
-    # GSNR = mean_gradient_squared / mean_variance
-
-    
-    return GSNR
-    
-
-
 def weights2model(fast_weights):
     return OrderedDict(
         (key, names_weights_dict[key])
         for idx, key in enumerate(names_weights_dict.keys()))
-
 
 def adapt(args):
     fix_random_seed_as(args.seed)
@@ -222,8 +213,7 @@ def adapt(args):
     scaler = torch.cuda.amp.GradScaler()
     trange = tqdm(range(args.num_iterations))
     best_bacc, best_acc, best_f1, _, _ = evaluation(args, model, val_dataloader)
-    # best_bacc, best_acc, best_f1 = 0,0,0 
-    
+
     cockpit = Cockpit(model.parameters(), quantities=quantities)
     plotter = CockpitPlotter()
     
@@ -232,9 +222,8 @@ def adapt(args):
         with torch.autocast(device_type=args.device, dtype=torch.float16):
             mean_outer_loss = 0.
             meta_gradients = []
-            task_similarity = []
-            task_similarity2 = []
-            
+            generalization_score = []
+
             # max_steps, global_step = 5, 0
             for j in range(args.num_pi):
                 support = tuple(t.to(args.device) for t in next(train_iter))
@@ -248,7 +237,6 @@ def adapt(args):
                                                                     labels=labels,
                                                                     is_train=True)
                     
-                    # outputs = model(input_ids=input_ids,attention_mask=attention_mask,labels=labels)
                     loss = outputs[0]
                     # losses = outputses[0]
                     model.zero_grad()
@@ -275,15 +263,8 @@ def adapt(args):
                 weight_before = OrderedDict(model.named_parameters())
                 for _, (params_before, params_after) in enumerate(zip(weight_before, fast_weights)):
                     task_gradients += (fast_weights[params_before].detach() - weight_before[params_before].detach(),)
-                
-            
-                
+
                 task_Mean_GSNR = compute_gsnr(task_gradients,args)
-
-
-                
-                
-
                 query_loss = 0.
                 for k, query in enumerate(query_loader):
                     query = tuple(t.to(args.device) for t in query)
@@ -303,31 +284,20 @@ def adapt(args):
                 meta_gradients.append(scaled_meta_grads)  # use scaled gradients as meta gradients
                 
 
-                
-                # normalize task and meta gradients before computing task similarity
-                # cur_similarity2 = [F.cosine_similarity(x.view(-1), y.view(-1), dim=-1) for x, y in zip(task_gradients, scaled_meta_grads)]
                 cur_similarity = F.cosine_similarity(task_Mean_GSNR, meta_Mean_GSNR, dim=0)
-                # cur_similarity = torch.mean(torch.tensor(cur_similarity))     
-                # task_Mean_GSNR =  torch.mean(torch.tensor(task_Mean_GSNR))
-                
-                # import pdb
-                # pdb.set_trace()
-                task_similarity.append(cur_similarity)
-                # task_similarity.append(task_Mean_GSNR)
-                # task_similarity2.append(cur_similarity2)
-                
-                # use meta loss to update learnable lr
-                # inner_loop_optimizer.update_lrs(query_loss, scaler)
+
+
+                generalization_score.append(cur_similarity)
+
                 inner_loop_optimizer.update_lrs(loss=query_loss, scaler=scaler,args=args)
                 mean_outer_loss += query_loss
             
 
-            task_similarity = F.softmax(torch.tensor(task_similarity) / args.softmax_temp, -1)
-            # task_similarity2 = F.softmax(torch.tensor(task_similarity2) / args.softmax_temp, -1)
+            generalization_score = F.softmax(torch.tensor(generalization_score) / args.softmax_temp, -1)
             for weights in zip(model.parameters(), *meta_gradients):
                 for k in range(len(meta_gradients)):
-                    if k == 0: weights[0].grad = task_similarity[k] * weights[k+1]
-                    else: weights[0].grad += task_similarity[k] * weights[k+1]
+                    if k == 0: weights[0].grad = generalization_score[k] * weights[k+1]
+                    else: weights[0].grad += generalization_score[k] * weights[k+1]
             
             # notice the above meta gradients are scaled
             scaler.unscale_(optimizer)
@@ -377,7 +347,6 @@ def adapt(args):
             'recall': test_recall
             }
     
-    # remove model files to save space
     if args.del_model:
         for filename in os.listdir(export_root):
             os.remove(os.path.join(export_root, filename))

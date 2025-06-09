@@ -18,8 +18,7 @@ def compute_gsnr(task_gradients, args):
 
     grad_squared = grads ** 2
 
-    # import pdb
-    # pdb.set_trace()
+
 
     sum_grad_squared = [(g ** 2) for g in task_gradients]
 
@@ -94,25 +93,13 @@ class LSLRGradientDescentLearningRule(nn.Module):
             # # # if Mean_grads_GSNR[idx]<topk_gsnr
             topk_gsnr = sorted(Mean_grads_GSNR)[k]
 
-            # import pdb
-            # pdb.set_trace()
-            # Mean_grads_GSNR = torch.stack(Mean_grads_GSNR)
-
-            # sorted_values, sorted_indices = torch.sort(Mean_grads_GSNR, descending=True)
-
-            # ranks = torch.argsort(torch.argsort(Mean_grads_GSNR, stable=True), descending=True)
-
-            # learning_rate_max = 1e-5 + 8e-6
-            # learning_rate_min = 1e-5
             self.lr_of_lr = 5e-6
 
             for idx, key in enumerate(self.names_learning_rates_dict.keys()):
                 if Mean_grads_GSNR[idx] > topk_gsnr:
-                    # self.names_learning_rates_dict[key] = nn.Parameter(self.names_learning_rates_dict[key] - self.lr_of_lr * grads[idx] * ranks[idx]/len(ranks))
                     self.names_learning_rates_dict[key] = nn.Parameter(
                         self.names_learning_rates_dict[key] - self.lr_of_lr * grads[idx])
-                    # self.names_learning_rates_dict[key] = nn.Parameter(self.names_learning_rates_dict[key] - self.lr_of_lr * grads[idx] + (learning_rate_max-learning_rate_min)* (ranks[idx]/len(ranks)))
-                    # self.names_learning_rates_dict[key] = nn.Parameter(self.names_learning_rates_dict[key] + (learning_rate_max-learning_rate_min)* (ranks[idx]/len(ranks)))
+
 
     def update_drop_p(self, loss, scaler=None, args=None):
         if self.use_learnable_drop_p:
@@ -140,27 +127,21 @@ class LSLRGradientDescentLearningRule(nn.Module):
             #     Mean_grad_GSNR = torch.mean(grad_GSNR.clone().detach())
             #     Mean_grads_GSNR.append(Mean_grad_GSNR)
 
-            # import pdb
-            # pdb.set_trace()
+
 
             self.drop_p = self.drop_p - - self.lr_of_lr * grads[idx]
 
-            # for idx, key in enumerate(self.names_learning_rates_dict.keys()):
-            #     # import pdb
-            #     # pdb.set_trace()
-            #     self.names_learning_rates_dict[key] = nn.Parameter(self.names_learning_rates_dict[key] - self.lr_of_lr * grads[idx])  # 201
+
 
     def update_params(self, names_weights_dict, grads, num_step):
-        # import pdb
-        # pdb.set_trace()
+
         return OrderedDict(
             (
             key, names_weights_dict[key] - self.names_learning_rates_dict[key.replace(".", "-")][num_step] * grads[idx])
             for idx, key in enumerate(names_weights_dict.keys()))
 
     def update_params_perturb(self, names_weights_dict, grads, num_step, args):
-        # import pdb
-        # pdb.set_trace()
+
         Mean_grads_GSNR = []
         for grad in grads:
             grad_GSNR = compute_gsnr(grad, args)
@@ -168,12 +149,10 @@ class LSLRGradientDescentLearningRule(nn.Module):
             Mean_grad_GSNR = torch.mean(grad_GSNR.clone().detach())
             Mean_grads_GSNR.append(Mean_grad_GSNR)
 
-        # pdb.set_trace()
         k = int(len(Mean_grads_GSNR) * self.drop_p)
         # # if Mean_grads_GSNR[idx]<topk_gsnr
         topk_gsnr = sorted(Mean_grads_GSNR)[k]
 
-        # Mean_grads_GSNR = F.softmax(torch.tensor(Mean_grads_GSNR) / args.softmax_temp, -1)
 
         new_ordered_dict = OrderedDict()
         for idx, key in enumerate(names_weights_dict.keys()):
@@ -195,8 +174,6 @@ class LSLRGradientDescentLearningRule(nn.Module):
                 # new_value = names_weights_dict[key] - self.names_learning_rates_dict[replaced_key][num_step] * grads[idx]
                 # new_value = names_weights_dict[key] - 9e-5 * grads[idx]
                 # 将新的键值对添加到OrderedDict中
-                # import pdb
-                # pdb.set_trace()
                 # new_ordered_dict[key] = torch.zeros_like(names_weights_dict[key]) # names_weights_dict[key].zero_()
                 new_ordered_dict[key] = names_weights_dict[key] * 0  # names_weights_dict[key].zero_()
         return new_ordered_dict
@@ -211,7 +188,6 @@ class LSLRGradientDescentLearningRule(nn.Module):
             Mean_grad_GSNR = torch.mean(grad_GSNR.clone().detach())
             Mean_grads_GSNR.append(Mean_grad_GSNR)
 
-        # pdb.set_trace()
         k = int(len(Mean_grads_GSNR) * 0.8)
         # # if Mean_grads_GSNR[idx]<topk_gsnr
         topk_gsnr = sorted(Mean_grads_GSNR)[k]
@@ -224,8 +200,7 @@ class LSLRGradientDescentLearningRule(nn.Module):
             if Mean_grads_GSNR[idx] < topk_gsnr:
                 # 替换键中的点为下划线
                 replaced_key = key.replace(".", "-")
-                # import pdb
-                # pdb.set_trace()
+
                 # 计算新的值
                 new_value = names_weights_dict[key] - self.names_learning_rates_dict[replaced_key][num_step] * grads[
                     idx]
@@ -235,14 +210,9 @@ class LSLRGradientDescentLearningRule(nn.Module):
 
             else:
                 replaced_key = key.replace(".", "-")
-                # 计算新的值
                 new_value = names_weights_dict[key] - self.names_learning_rates_dict[replaced_key][num_step] * grads[
                     idx]
-                # new_value = names_weights_dict[key] - 9e-5 * grads[idx]
                 # 将新的键值对添加到OrderedDict中
                 new_ordered_dict[key] = 0
         return new_ordered_dict
 
-        # return OrderedDict(
-        #     (key, names_weights_dict[key] - self.names_learning_rates_dict[key.replace(".", "-")][num_step] * grads[idx])
-        #     for idx, key in enumerate(names_weights_dict.keys()) if Mean_grads_GSNR[idx]<topk_gsnr)

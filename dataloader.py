@@ -16,15 +16,6 @@ import torch
 from transformers import RobertaTokenizer
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset, Dataset
 
-
-# def InfiniteSampling(n):
-#     i = 0
-#     while True:
-#         yield i
-#         i += 1
-#         if i >= n:
-#             i = 0  # 当索引超出范围时，重新从头开始
-
 def InfiniteSampling(n):
     # i = 0
     i = n - 1

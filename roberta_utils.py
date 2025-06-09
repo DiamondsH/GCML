@@ -7,7 +7,7 @@ from collections import OrderedDict
 from transformers import RobertaModel, RobertaTokenizer, RobertaForSequenceClassification
 
 
-# from backpack import extend, extensions
+from backpack import extend, extensions
 
 
 def functional_roberta_for_classification_outputcls(fast_weights=None, config=None, input_ids=None, attention_mask=None, token_type_ids=None,
@@ -35,28 +35,19 @@ def functional_roberta_for_classification_outputcls(fast_weights=None, config=No
     
     cls_output = logits
     
-    # import pdb
-    # pdb.set_trace()
+
 
     loss = None
     if labels is not None:
         if config.num_labels == 1:
-            # We are doing regression
             loss = F.mse_loss(logits.view(-1), labels.view(-1))
         else:
-            # import pdb
-            # pdb.set_trace()
-
             _, predicted = torch.max(logits, dim=1)
-            # equal_mask = torch.eq(tensor1, labels)
             equal_mask = torch.eq(labels, predicted)
             equal_indices = torch.nonzero(equal_mask, as_tuple=False).squeeze()
 
-
-
             labels= labels.view(-1).to(torch.long)
-            # loss_fn = extend(torch.nn.CrossEntropyLoss(reduction="mean"))
-            # loss  =  loss_fn(logits.view(-1, config.num_labels), labels)
+
             loss = F.cross_entropy(logits.view(-1, config.num_labels), labels)
 
     output = (logits,) + outputs[2:]
@@ -86,8 +77,7 @@ def functional_roberta_for_classification(fast_weights=None, config=None, input_
                       fast_weights['classifier.out_proj.weight'],
                       fast_weights['classifier.out_proj.bias'])
     
-    # import pdb
-    # pdb.set_trace()
+
 
     loss = None
     if labels is not None:
@@ -95,18 +85,13 @@ def functional_roberta_for_classification(fast_weights=None, config=None, input_
             # We are doing regression
             loss = F.mse_loss(logits.view(-1), labels.view(-1))
         else:
-            # import pdb
-            # pdb.set_trace()
+
             labels= labels.view(-1).to(torch.long)
-            # loss_fn = extend(torch.nn.CrossEntropyLoss(reduction="mean"))
-            # loss  =  loss_fn(logits.view(-1, config.num_labels), labels)
             loss = F.cross_entropy(logits.view(-1, config.num_labels), labels)
 
     output = (logits,) + outputs[2:]
     
-    # if torch.all(torch.isnan(loss)):
 
-    # return ((loss,) + output) if loss is not None else output
     return ((loss,) + output) if loss is not None else output
 
 
